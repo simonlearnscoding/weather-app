@@ -2,42 +2,73 @@ let conversion = 0 // TODO: Button onclick conversion ++
 //Check if browser supports W3C Geolocation API
 
 
+async function getCity(coordinates) {
+    function formatCoordinates(coordinates) {
+        function isPositive(num) {
+            return num > 0? '+' : ''
+        }
+        const long = `${isPositive(coordinates.long)}${coordinates.long}`
+        const lat = `${isPositive(coordinates.lat)}${coordinates.lat}`
+        const string = lat + long
+        return string
 
-const options = {
-    method: 'GET',
-    url: 'https://wft-geo-db.p.rapidapi.com/v1/geo/cities/Q60/nearbyCities',
-    params: {radius: '100'},
-    headers: {
-        'X-RapidAPI-Key': '6bcfec76e2msh03b8b3baf8d518fp163b65jsn147cd1d6e583',
-        'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
     }
-};
-async function
-fetch(options).then(function (response) {
-    console.log(response.data);
-}).catch(function (error) {
-    console.error(error);
-});
+    const coord = formatCoordinates(coordinates)
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-RapidAPI-Key': '6bcfec76e2msh03b8b3baf8d518fp163b65jsn147cd1d6e583',
+            'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
+        }
+    };
+    const url = `https://wft-geo-db.p.rapidapi.com/v1/geo/locations/${coord}/nearbyCities?radius=100`
+    const response = await fetch(url, options)
+    const data = await response.json()
+    const city = data.data[0].city;
+    return city
+}
+
 
 async function geolocation() {
     if ("geolocation" in navigator) {
-        await navigator.geolocation.getCurrentPosition(successFunction, errorFunct);
+        const geolocationOptions = {
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 5000,
+        };
+
 
         function errorFunct(err) {
             console.log(err)
         }
-//Get latitude and longitude;
         function successFunction(position) {
-            var lat = position.coords.latitude;
-            var long = position.coords.longitude;
-            console.log(lat, long)
+            const lat = position.coords.latitude
+            const coordinates = {
+                lat : position.coords.latitude,
+                long : position.coords.longitude,
+            }
+            console.log(lat)
+            console.log(coordinates)
+            return coordinates
         }
+        await navigator.geolocation.getCurrentPosition(successFunction, errorFunct, geolocationOptions);
     }
     else { console.log('browser no supporto la geolocatione')}
 
 }
 
-geolocation()
+async function Start() {
+    const coordinates = await geolocation()
+        console.log(coordinates) // TODO: you are here
+    const city = await getCity(coordinates)
+    // await fetchWeatherData(City)
+
+}
+Start()
+window.addEventListener('load', (event) => {
+    console.log('page is fully loaded');
+
+});
 
 
 
@@ -56,7 +87,7 @@ function convert(temperature) {
 
 
 
-async function fetchData(city) {
+async function fetchWeatherData(city) {
 
     try {
         const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&APPID=20f7632ffc2c022654e4093c6947b4f4`
@@ -97,6 +128,6 @@ async function fetchData(city) {
     }
 }
 
-// fetchData('Sadgadg')
-fetchData(' SAlzburg     ')
-fetchData(' Salzburg ')
+// fetchWeatherData('Sadgadg')
+// fetchWeatherData('Lugano District')
+// fetchWeatherData(' Salzburg ')
