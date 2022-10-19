@@ -22,82 +22,75 @@ async function getCity(coordinates) {
         }
     };
     const url = `https://wft-geo-db.p.rapidapi.com/v1/geo/locations/${coord}/nearbyCities?radius=100`
-    const response = await fetch(url, options)
-    const data = await response.json()
-    const city = data.data[0].city;
-    return city
-}
+    try {
 
+        const response = await fetch(url, options)
+        const data = await response.json()
+        const city = data.data[0].city;
+        return city
+    }
+    catch (e) {
+        console.log(e)
+    }
+}
 
 async function geolocation() {
-    if ("geolocation" in navigator) {
-        const geolocationOptions = {
-            enableHighAccuracy: true,
-            maximumAge: 10000,
-            timeout: 5000,
-        };
+    if (!("geolocation" in navigator))
+        // lat 43.000000 TODO: default = New York
+        //long -75.000000
+    { return console.log('browser no supporto la geolocatione')}
+    const coords = await getPos()
+    return intoCoordinates(coords)
 
-
-        function errorFunct(err) {
-            console.log(err)
-        }
-        function successFunction(position) {
-            const lat = position.coords.latitude
-            const coordinates = {
-                lat : position.coords.latitude,
-                long : position.coords.longitude,
-            }
-            console.log(lat)
-            console.log(coordinates)
-            return coordinates
-        }
-        await navigator.geolocation.getCurrentPosition(successFunction, errorFunct, geolocationOptions);
+    function getPos() {
+        return new Promise((success, error) => { navigator.geolocation.getCurrentPosition(success, error)})
     }
-    else { console.log('browser no supporto la geolocatione')}
-
+    function intoCoordinates(position) {
+        const lat = position.coords.latitude
+        const coordinates = {
+            lat : position.coords.latitude,
+            long : position.coords.longitude,
+        }
+        return coordinates
+    }
 }
 
-async function Start() {
-    const coordinates = await geolocation()
-        console.log(coordinates) // TODO: you are here
-    const city = await getCity(coordinates)
-    // await fetchWeatherData(City)
+const getWeatherOfMyCity = async () => {
+    try {
+
+        const coordinates = await geolocation()
+        const city = await getCity(coordinates)
+        const weatherObject = await fetchWeatherData(city)
+        return weatherObject
+    }
+    catch (err) {
+        console.log(err)
+    }
 
 }
-Start()
-window.addEventListener('load', (event) => {
-    console.log('page is fully loaded');
-
-});
-
-
-
 function convert(temperature) {
-        let temp = temperature - 273
-        if(conversion % 2 == 0) {
-            return Math.round(temp * 100) / 100
-        }
-        return cToF(temp)
-        function cToF(celsius)
-        {
-            let cTemp = celsius;
-            return Math.round((cTemp * 9 / 5 + 32) * 100) / 100;
-        }
+    let temp = temperature - 273
+    if(conversion % 2 == 0) {
+        return Math.round(temp * 100) / 100
     }
-
-
-
+    return cToF(temp)
+    function cToF(celsius)
+    {
+        let cTemp = celsius;
+        return Math.round((cTemp * 9 / 5 + 32) * 100) / 100;
+    }
+}
 async function fetchWeatherData(city) {
 
     try {
         const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&APPID=20f7632ffc2c022654e4093c6947b4f4`
         let data = await fetch(url)
-        dataToJSON = await data.json()
+        const dataToJSON = await data.json()
         if (dataToJSON.cod == "404") {
             console.log("city not found!")
             return
         }
-        weatherObj = getData(dataToJSON)
+        const weatherObj = getData(dataToJSON)
         console.log(weatherObj)
     }
     catch (err) {
@@ -124,10 +117,7 @@ async function fetchWeatherData(city) {
             todayOffset = today + timezone
             return`${today.getHours()}:${today.getMinutes()}`
         }
-
     }
 }
 
-// fetchWeatherData('Sadgadg')
-// fetchWeatherData('Lugano District')
-// fetchWeatherData(' Salzburg ')
+export {getWeatherOfMyCity}
