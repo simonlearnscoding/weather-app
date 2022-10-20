@@ -26,8 +26,15 @@ async function getCity(coordinates) {
 
         const response = await fetch(url, options)
         const data = await response.json()
-        const city = data.data[0].city;
+        const city = checkIfInWeatherAPI(data)
+
         return city
+
+        async function checkIfInWeatherAPI(data, x=0) {
+            const city = data.data[x].city
+            if(console.log(fetchWeatherData(city)) === true) { return city}
+            checkIfInWeatherAPI(data, x+1)
+         }
     }
     catch (e) {
         console.log(e)
@@ -81,7 +88,6 @@ function convert(temperature) {
     }
 }
 async function fetchWeatherData(city) {
-
     try {
         const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&APPID=20f7632ffc2c022654e4093c6947b4f4`
         let data = await fetch(url)
@@ -89,6 +95,7 @@ async function fetchWeatherData(city) {
         if (dataToJSON.cod == "404") {
             console.log("city not found!")
             return
+
         }
         const weatherObj = getData(dataToJSON)
         console.log(weatherObj)
