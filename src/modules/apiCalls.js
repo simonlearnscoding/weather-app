@@ -21,19 +21,51 @@ async function getCity(coordinates) {
             'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
         }
     };
-    const url = `https://wft-geo-db.p.rapidapi.com/v1/geo/locations/${coord}/nearbyCities?radius=100`
+    const url = `https://wft-geo-db.p.rapidapi.com/v1/geo/locations/${coord}/nearbyCities?radius=100&minPopulation=100000`
     try {
 
         const response = await fetch(url, options)
         const data = await response.json()
-        const city = checkIfInWeatherAPI(data)
+        const cityArray = cleanCityObj(data)
+        const city = await checkIfInWeatherAPI(cityArray)
 
         return city
+        function compare(a, b) {
+            let comparison = 0;
+            const cityA = a.population;
+            const cityB = b.population;
+            if (cityA > cityB) {
+                comparison = 1;
+                return comparison;
+            }
+            return comparison
+        }
+        function objToCityArray(obj) {
+            const arr = []
+            obj.map( object => arr.push(object.city))
+            return arr
+        }
+        function returnFirstChar(arr){
+            let obj = arr.map(string => string.split(' ')[0].split('-')[0])
+            // let obj = obj.map(string => string.split('-')[0])
+            return obj
+        }
+        function cleanCityObj(data) {
+            const arr = objToCityArray(data.data)
+            const arr2 = returnFirstChar(arr)
+            const arr3 = arr.concat(arr2)
+            return arr3
+        }
+        async function checkIfInWeatherAPI(cityArray, x=0) {
 
-        async function checkIfInWeatherAPI(data, x=0) {
-            const city = data.data[x].city
-            if(console.log(fetchWeatherData(city)) === true) { return city}
-            checkIfInWeatherAPI(data, x+1)
+            if ((await fetchWeatherData( cityArray[x])) instanceof Error === false) {
+                let result = cityArray[x]
+                return result
+            }
+            else {
+                checkIfInWeatherAPI(cityArray, x+1)
+            }
+
          }
     }
     catch (e) {
@@ -61,10 +93,17 @@ async function geolocation() {
         return coordinates
     }
 }
-
+const getWeatherOfCity = async (city) => {
+    try {
+        const weatherObject = await fetchWeatherData(city)
+        return weatherObject
+    }
+    catch (err) {
+        console.log(err)
+    }
+}
 const getWeatherOfMyCity = async () => {
     try {
-
         const coordinates = await geolocation()
         const city = await getCity(coordinates)
         const weatherObject = await fetchWeatherData(city)
@@ -93,12 +132,10 @@ async function fetchWeatherData(city) {
         let data = await fetch(url)
         const dataToJSON = await data.json()
         if (dataToJSON.cod == "404") {
-            console.log("city not found!")
-            return
-
+            return new Error("city not found!")
         }
-        const weatherObj = getData(dataToJSON)
-        console.log(weatherObj)
+        return getData(dataToJSON)
+
     }
     catch (err) {
         console.error('something went wrong' + err)
@@ -107,7 +144,7 @@ async function fetchWeatherData(city) {
 
     function getData(dataToJSON) {
         const obj = {
-            'city' : dataToJSON.name,
+            'cityName' : dataToJSON.name,
             'time' : getDate(dataToJSON.timeZone),
             'main' : dataToJSON.weather[0].main,
             'description' : dataToJSON.weather[0].description,
@@ -121,10 +158,10 @@ async function fetchWeatherData(city) {
         return obj
         function getDate(timezone) {
             let today = new Date();
-            todayOffset = today + timezone
+            const todayOffset = today + timezone
             return`${today.getHours()}:${today.getMinutes()}`
         }
     }
 }
 
-export {getWeatherOfMyCity}
+export {getWeatherOfMyCity, getWeatherOfCity}
